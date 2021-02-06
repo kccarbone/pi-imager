@@ -1,6 +1,6 @@
 #!/bin/bash
 
-
+touch /home/pi/starting
 curl -s -X POST -H "Content-Type: application/json" -d "{ \"thedog\": \"starting\" }" http://10.0.0.21:25801/48
 
 # Update system
@@ -31,3 +31,4 @@ printf "Updating core...\n"
 sudo snap refresh core
 
 curl -s -X POST -H "Content-Type: application/json" -d "{ \"thedog\": \"complete\" }" http://10.0.0.21:25801/48
+touch /home/pi/finished
