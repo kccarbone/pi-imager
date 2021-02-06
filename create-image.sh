@@ -74,8 +74,8 @@ sudo rm -f $serviceScript
 sudo touch $serviceScript
 sudo chmod +x $serviceScript
 echo '#!/bin/bash' | sudo tee -a $serviceScript > /dev/null
-echo 'curl -s -X POST -H "Content-Type: application/json" -d "{ \"thedog\": \"firstly\" }" http://10.0.0.21:25801/48 > /dev/null' | sudo tee -a $serviceScript > /dev/null
-echo 'curl -s -X POST -H "Content-Type: application/json" -d "{ \"thedog\": \"$(whoami)\" }" http://10.0.0.21:25801/48 > /dev/null' | sudo tee -a $serviceScript > /dev/null
+echo 'curl -fsSL https://raw.githubusercontent.com/kccarbone/pi-imager/master/first-boot.sh | bash' | sudo tee -a $serviceScript > /dev/null
+echo "rm /etc/systemd/system/multi-user.target.wants/$serviceName.service" | sudo tee -a $serviceScript > /dev/null
 
 sudo rm -f $serviceFile
 sudo touch $serviceFile

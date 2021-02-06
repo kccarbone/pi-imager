@@ -8,7 +8,5 @@ sudo rm -f $serviceScript
 sudo touch $serviceScript
 sudo chmod +x $serviceScript
 echo '#!/bin/bash' | sudo tee -a $serviceScript > /dev/null
-echo '' | sudo tee -a $serviceScript > /dev/null
-
-
-printf '\033[0;32mTest file written!\033[0m\n'
+echo 'curl -fsSL https://raw.githubusercontent.com/kccarbone/pi-imager/master/first-boot.sh | bash' | sudo tee -a $serviceScript > /dev/null
+echo "rm /etc/systemd/system/multi-user.target.wants/$serviceName.service" | sudo tee -a $serviceScript > /dev/null
