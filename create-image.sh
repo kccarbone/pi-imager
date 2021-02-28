@@ -2,11 +2,13 @@
 
 printf '\033[0;104m[ Creating custom pi image ]\033[0m\n\n'
 
-# Set up wifi
+# Inputs
 printf "\033[0;33m -> Wifi SSID: \033[0m"
 read -r wifiSSID
-printf "\033[0;33m -> Wifi Password: \033[0m"
+printf "\033[0;33m -> Wifi password: \033[0m"
 read -r wifiPass
+printf "\033[0;33m -> Pi user password: \033[0m"
+read -r piPass
 
 # Download pi image
 imageSource=https://downloads.raspberrypi.org/raspios_arm64/images/raspios_arm64-2020-08-24/2020-08-20-raspios-buster-arm64.zip
@@ -36,12 +38,19 @@ sudo mkdir -p $bootDir
 sudo mkdir -p $rootDir
 
 printf '\033[0;36m\nMounting image...\033[0m\n'
-sudo losetup -P "$loopDevice" raspbian.img
-sudo mount "${loopDevice}p1" $bootDir
-sudo mount "${loopDevice}p2" $rootDir
+{
+  sudo losetup -P "$loopDevice" raspbian.img && echo "raspbian.img mapped to $loopDevice"
+  sudo mount "${loopDevice}p1" $bootDir && echo "Boot partition mapped to $bootDir"
+  sudo mount "${loopDevice}p2" $rootDir && echo "Full OS partition mapped to $rootDir"
+} || 
+{
+  printf "\033[0;91m\nFailed to access loop device.\033[0m\n"
+  printf "\033[0;31;47m>> Try unmounting \033[1m$loopDevice\033[0;31;47m and run again <<\033[0m\n"
+  exit 1
+}
 
 # Inject files
-printf '\033[0;36m\nMounting image...\033[0m\n'
+printf '\033[0;36m\nInjecting files...\033[0m\n'
 wifiFile="$bootDir/wpa_supplicant.conf"
 sshFile="$bootDir/SSH"
 
@@ -63,44 +72,49 @@ printf 'Wifi enabled\n'
 sudo touch $sshFile
 printf 'SSH enabled\n'
 
-# Enable locator
+# Enable first-boot script
 serviceName="firstboot"
 serviceHome="$rootDir/etc/$serviceName"
 serviceScript="$serviceHome/service.sh"
 serviceFile="$rootDir/lib/systemd/system/$serviceName.service"
 
+sudo rm -rf $serviceHome
 sudo mkdir -p $serviceHome
-sudo rm -f $serviceScript
 sudo touch $serviceScript
 sudo chmod +x $serviceScript
 echo '#!/bin/bash' | sudo tee -a $serviceScript > /dev/null
-echo 'curl -fsSL https://raw.githubusercontent.com/kccarbone/pi-imager/master/first-boot.sh | bash' | sudo tee -a $serviceScript > /dev/null
+echo "echo 'pi:$piPass' | chpasswd" | sudo tee -a $serviceScript > /dev/null
+echo 'while ! ping -n -w 1 -c 1 google.com &> /dev/null; do echo "waiting on network"; sleep 1; done' | sudo tee -a $serviceScript > /dev/null
+echo 'bash <(curl -fsSL https://raw.githubusercontent.com/kccarbone/pi-imager/master/first-boot.sh)' | sudo tee -a $serviceScript > /dev/null
 echo "rm /etc/systemd/system/multi-user.target.wants/$serviceName.service" | sudo tee -a $serviceScript > /dev/null
 
 sudo rm -f $serviceFile
 sudo touch $serviceFile
 echo '[Unit]' | sudo tee -a $serviceFile > /dev/null
 echo 'Description=First boot setup script' | sudo tee -a $serviceFile > /dev/null
-echo 'After=network.target' | sudo tee -a $serviceFile > /dev/null
 echo 'After=network-online.target' | sudo tee -a $serviceFile > /dev/null
 echo '' | sudo tee -a $serviceFile > /dev/null
 echo '[Service]' | sudo tee -a $serviceFile > /dev/null
 echo 'User=root' | sudo tee -a $serviceFile > /dev/null
 echo 'Type=simple' | sudo tee -a $serviceFile > /dev/null
-echo "ExecStart=$serviceScript" | sudo tee -a $serviceFile > /dev/null
-echo 'TimeoutSec=30' | sudo tee -a $serviceFile > /dev/null
+echo "ExecStart=/etc/$serviceName/service.sh" | sudo tee -a $serviceFile > /dev/null
 echo 'Restart=on-failure' | sudo tee -a $serviceFile > /dev/null
 echo 'RestartSec=30' | sudo tee -a $serviceFile > /dev/null
+echo 'StandardOutput=syslog' | sudo tee -a $serviceFile > /dev/null
+echo 'StandardError=syslog' | sudo tee -a $serviceFile > /dev/null
+echo "SyslogIdentifier=$serviceName" | sudo tee -a $serviceFile > /dev/null
 echo '' | sudo tee -a $serviceFile > /dev/null
 echo '[Install]' | sudo tee -a $serviceFile > /dev/null
 echo 'WantedBy=multi-user.target' | sudo tee -a $serviceFile > /dev/null
 
+sudo rm -f "$rootDir/etc/systemd/system/multi-user.target.wants/$serviceName.service"
 sudo ln -s "$serviceFile" "$rootDir/etc/systemd/system/multi-user.target.wants/$serviceName.service"
-printf 'Locator service enabled\n'
+printf 'First-boot service enabled\n'
 
 # Unmount
 printf '\033[0;36m\nUnmounting image...\033[0m\n'
-sudo umount $bootDir
-sudo umount $rootDir
+sudo umount $bootDir && echo "Unmounted $bootDir"
+sudo umount $rootDir && echo "Unmounted $bootDir"
+sudo losetup -d $loopDevice && echo "raspbian.img released!"
 
 printf '\033[0;32m\nDone!\033[0m\n'
