@@ -87,6 +87,8 @@ echo "echo 'pi:$piPass' | chpasswd" | sudo tee -a $serviceScript > /dev/null
 echo 'while ! ping -n -w 1 -c 1 google.com &> /dev/null; do echo "waiting on network"; sleep 1; done' | sudo tee -a $serviceScript > /dev/null
 echo 'bash <(curl -fsSL https://raw.githubusercontent.com/kccarbone/pi-imager/master/first-boot.sh)' | sudo tee -a $serviceScript > /dev/null
 echo "rm /etc/systemd/system/multi-user.target.wants/$serviceName.service" | sudo tee -a $serviceScript > /dev/null
+echo 'echo "Firstboot script complete. Restarting..."' | sudo tee -a $serviceScript > /dev/null
+echo 'shutdown -r now' | sudo tee -a $serviceScript > /dev/null
 
 sudo rm -f $serviceFile
 sudo touch $serviceFile
