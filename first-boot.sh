@@ -1,6 +1,6 @@
 #!/bin/bash
 
-curl -s -X POST -H "Content-Type: application/json" -d "{ \"thedog\": \"starting\" }" http://10.0.0.21:25801/48
+curl -s -m 2 -X POST -H "Content-Type: application/json" -d "{ \"thedog\": \"starting\" }" http://10.0.0.21:25801/48
 
 # Update system
 printf 'Updating system\n'
@@ -57,6 +57,8 @@ echo 'WantedBy=multi-user.target' | sudo tee -a $serviceFile > /dev/null
 
 sudo rm -f "/etc/systemd/system/multi-user.target.wants/$serviceName.service"
 sudo ln -s "$serviceFile" "/etc/systemd/system/multi-user.target.wants/$serviceName.service"
+sudo systemctl enable $serviceName
+sudo systemctl start $serviceName
 printf "$serviceName service enabled\n"
 
-curl -s -X POST -H "Content-Type: application/json" -d "{ \"thedog\": \"complete\" }" http://10.0.0.21:25801/48
+curl -s -m 2 -X POST -H "Content-Type: application/json" -d "{ \"thedog\": \"complete\" }" http://10.0.0.21:25801/48
