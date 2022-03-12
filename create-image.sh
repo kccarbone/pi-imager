@@ -11,7 +11,7 @@ printf "\033[0;33m -> Pi user password: \033[0m"
 read -r piPass
 
 # Download pi image
-imageSource=https://downloads.raspberrypi.org/raspios_arm64/images/raspios_arm64-2020-08-24/2020-08-20-raspios-buster-arm64.zip
+imageSource=https://downloads.raspberrypi.org/raspios_arm64/images/raspios_arm64-2022-01-28/2022-01-28-raspios-bullseye-arm64.zip
 
 if [ ! -f raspbian.zip ];
 then
