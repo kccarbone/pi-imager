@@ -11,22 +11,20 @@ printf "\033[0;33m -> Pi user password: \033[0m"
 read -r piPass
 
 # Download pi image
-imageSource=https://downloads.raspberrypi.org/raspios_arm64/images/raspios_arm64-2022-01-28/2022-01-28-raspios-bullseye-arm64.zip
+imageSource=https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2022-04-07/2022-04-04-raspios-bullseye-arm64-lite.img.xz
 
-if [ ! -f raspbian.zip ];
+if [ ! -f raspbian.img.xz ];
 then
   printf '\033[0;36m\nDownloading image...\033[0m\n'
-  curl $imageSource -o raspbian.zip
+  curl $imageSource -o raspbian.img.xz
 fi
 
-# Unzip it
+# Extract it
 if [ ! -f raspbian.img ];
 then
-  printf '\033[0;36m\nUnzipping image...\033[0m\n'
-  unzip raspbian.zip
-  for f in ./*.img; do
-    mv "$f" "raspbian.img"
-  done
+  printf '\033[0;36m\nExtract image...\033[0m\n'
+  unxz raspbian.img.xz
+  echo 'Done!'
 fi
 
 # Mount locally
@@ -83,12 +81,12 @@ sudo mkdir -p $serviceHome
 sudo touch $serviceScript
 sudo chmod +x $serviceScript
 echo '#!/bin/bash' | sudo tee -a $serviceScript > /dev/null
-echo "echo 'pi:$piPass' | chpasswd" | sudo tee -a $serviceScript > /dev/null
+echo "echo 'pi:$piPass' | sudo chpasswd" | sudo tee -a $serviceScript > /dev/null
 echo 'while ! ping -n -w 1 -c 1 google.com &> /dev/null; do echo "waiting on network"; sleep 1; done' | sudo tee -a $serviceScript > /dev/null
-echo 'bash <(curl -fsSL https://raw.githubusercontent.com/kccarbone/pi-imager/master/first-boot.sh)' | sudo tee -a $serviceScript > /dev/null
-echo "rm /etc/systemd/system/multi-user.target.wants/$serviceName.service" | sudo tee -a $serviceScript > /dev/null
+echo 'bash <(curl -sSL http://10.0.0.209:18011/file/first-boot.sh)' | sudo tee -a $serviceScript > /dev/null
+echo "sudo rm /etc/systemd/system/multi-user.target.wants/$serviceName.service" | sudo tee -a $serviceScript > /dev/null
 echo 'echo "Firstboot script complete. Restarting..."' | sudo tee -a $serviceScript > /dev/null
-echo 'shutdown -r now' | sudo tee -a $serviceScript > /dev/null
+echo 'sudo shutdown -r now' | sudo tee -a $serviceScript > /dev/null
 
 sudo rm -f $serviceFile
 sudo touch $serviceFile
@@ -97,7 +95,7 @@ echo 'Description=First boot setup script' | sudo tee -a $serviceFile > /dev/nul
 echo 'After=network-online.target' | sudo tee -a $serviceFile > /dev/null
 echo '' | sudo tee -a $serviceFile > /dev/null
 echo '[Service]' | sudo tee -a $serviceFile > /dev/null
-echo 'User=root' | sudo tee -a $serviceFile > /dev/null
+echo 'User=pi' | sudo tee -a $serviceFile > /dev/null
 echo 'Type=simple' | sudo tee -a $serviceFile > /dev/null
 echo "ExecStart=/etc/$serviceName/service.sh" | sudo tee -a $serviceFile > /dev/null
 echo 'Restart=on-failure' | sudo tee -a $serviceFile > /dev/null
