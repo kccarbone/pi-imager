@@ -3,12 +3,14 @@
 printf '\033[0;104m[ Creating custom pi image ]\033[0m\n\n'
 
 # Inputs
+printf "\033[0;33m -> Default user: \033[0m"
+read -r defUser
+printf "\033[0;33m -> Default password: \033[0m"
+read -r defPass
 printf "\033[0;33m -> Wifi SSID: \033[0m"
 read -r wifiSSID
 printf "\033[0;33m -> Wifi password: \033[0m"
 read -r wifiPass
-printf "\033[0;33m -> Pi user password: \033[0m"
-read -r piPass
 
 # Download pi image
 imageSource=https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2022-04-07/2022-04-04-raspios-bullseye-arm64-lite.img.xz
@@ -49,8 +51,16 @@ printf '\033[0;36m\nMounting image...\033[0m\n'
 
 # Inject files
 printf '\033[0;36m\nInjecting files...\033[0m\n'
+userFile="$bootDir/userconf.txt"
 wifiFile="$bootDir/wpa_supplicant.conf"
 sshFile="$bootDir/SSH"
+
+# Enable default user
+encPass=$(echo "$defPass" | openssl passwd -6 -stdin)
+sudo rm -f $userFile
+sudo touch $userFile
+echo "$defUser:$encPass" | sudo tee -a $userFile > /dev/null
+printf 'Default user added\n'
 
 # Enable WiFi
 sudo rm -f $wifiFile
@@ -81,7 +91,6 @@ sudo mkdir -p $serviceHome
 sudo touch $serviceScript
 sudo chmod +x $serviceScript
 echo '#!/bin/bash' | sudo tee -a $serviceScript > /dev/null
-echo "echo 'pi:$piPass' | sudo chpasswd" | sudo tee -a $serviceScript > /dev/null
 echo 'while ! ping -n -w 1 -c 1 google.com &> /dev/null; do echo "waiting on network"; sleep 1; done' | sudo tee -a $serviceScript > /dev/null
 echo 'bash <(curl -sSL http://10.0.0.209:18011/file/first-boot.sh)' | sudo tee -a $serviceScript > /dev/null
 echo "sudo rm /etc/systemd/system/multi-user.target.wants/$serviceName.service" | sudo tee -a $serviceScript > /dev/null
@@ -95,7 +104,7 @@ echo 'Description=First boot setup script' | sudo tee -a $serviceFile > /dev/nul
 echo 'After=network-online.target' | sudo tee -a $serviceFile > /dev/null
 echo '' | sudo tee -a $serviceFile > /dev/null
 echo '[Service]' | sudo tee -a $serviceFile > /dev/null
-echo 'User=pi' | sudo tee -a $serviceFile > /dev/null
+echo "User=$defUser" | sudo tee -a $serviceFile > /dev/null
 echo 'Type=simple' | sudo tee -a $serviceFile > /dev/null
 echo "ExecStart=/etc/$serviceName/service.sh" | sudo tee -a $serviceFile > /dev/null
 echo 'Restart=on-failure' | sudo tee -a $serviceFile > /dev/null
