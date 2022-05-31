@@ -92,7 +92,7 @@ sudo touch $serviceScript
 sudo chmod +x $serviceScript
 echo '#!/bin/bash' | sudo tee -a $serviceScript > /dev/null
 echo 'while ! ping -n -w 1 -c 1 google.com &> /dev/null; do echo "waiting on network"; sleep 1; done' | sudo tee -a $serviceScript > /dev/null
-echo 'bash <(curl -sSL http://10.0.0.209:18011/file/first-boot.sh)' | sudo tee -a $serviceScript > /dev/null
+echo 'bash <(curl -sSL http://10.0.0.50:18011/file/first-boot.sh)' | sudo tee -a $serviceScript > /dev/null
 echo "sudo rm /etc/systemd/system/multi-user.target.wants/$serviceName.service" | sudo tee -a $serviceScript > /dev/null
 echo 'echo "Firstboot script complete. Restarting..."' | sudo tee -a $serviceScript > /dev/null
 echo 'sudo shutdown -r now' | sudo tee -a $serviceScript > /dev/null
