@@ -1,6 +1,6 @@
 #!/bin/bash
 
-printf '\033[0;104m[ Creating custom pi image ]\033[0m\n\n'
+printf '\033[0;30;104m[ Creating custom pi image ]\033[0m\n\n'
 
 # Inputs
 printf "\033[0;33m -> Default user: \033[0m"
@@ -13,7 +13,7 @@ printf "\033[0;33m -> Wifi password: \033[0m"
 read -r wifiPass
 
 # Download pi image
-imageSource=https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2022-04-07/2022-04-04-raspios-bullseye-arm64-lite.img.xz
+imageSource=https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2022-09-26/2022-09-22-raspios-bullseye-arm64-lite.img.xz
 
 if [ ! -f raspbian.img.xz ];
 then
