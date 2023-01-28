@@ -11,10 +11,22 @@ printf "\033[0;33m -> Wifi SSID: \033[0m"
 read -r wifiSSID
 printf "\033[0;33m -> Wifi password: \033[0m"
 read -r wifiPass
+printf "\033[0;33m -> 64-bit?: \033[0m"
+read -r modernOS
 
-# Download pi image
-imageSource=https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2022-09-26/2022-09-22-raspios-bullseye-arm64-lite.img.xz
+# Find pi image
+if [[ "$modernOS" =~ ^[yY]$|^YES$|^yes$ ]];
+then
+  # 64-bit image - Compatible with pi 3+ and pi zero 2+
+  imageSource=https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2022-09-26/2022-09-22-raspios-bullseye-arm64-lite.img.xz
+  printf "\r\033[1A\033[0K\033[0;33m -> 64-bit?:\033[0m Yes\n"
+else
+  # 32-bit image - Compatble with all
+  imageSource=https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2022-09-26/2022-09-22-raspios-bullseye-armhf-lite.img.xz
+  printf "\r\033[1A\033[0K\033[0;33m -> 64-bit?:\033[0m No\n"
+fi
 
+# Doanload it
 if [ ! -f raspbian.img.xz ];
 then
   printf '\033[0;36m\nDownloading image...\033[0m\n'
