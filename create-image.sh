@@ -103,6 +103,7 @@ sudo mkdir -p $serviceHome
 sudo touch $serviceScript
 sudo chmod +x $serviceScript
 echo '#!/bin/bash' | sudo tee -a $serviceScript > /dev/null
+echo "sudo nmcli connection modify \"Wired connection 1\" connection.id \"Ethernet\"" | sudo tee -a $serviceScript > /dev/null
 echo "sudo nmcli device wifi connect \"$wifiSSID\" password \"$wifiPass\"" | sudo tee -a $serviceScript > /dev/null
 echo 'while ! ping -n -w 1 -c 1 google.com &> /dev/null; do echo "waiting on network"; sleep 1; done' | sudo tee -a $serviceScript > /dev/null
 echo 'bash <(curl -sSL http://10.0.0.50:18011/file/first-boot.sh)' | sudo tee -a $serviceScript > /dev/null
