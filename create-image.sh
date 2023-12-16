@@ -18,11 +18,11 @@ read -r modernOS
 if [[ "$modernOS" =~ ^[yY]$|^YES$|^yes$ ]];
 then
   # 64-bit image - Compatible with pi 3+ and pi zero 2+
-  imageSource=https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2023-10-10/2023-10-10-raspios-bookworm-arm64-lite.img.xz
+  imageSource=https://downloads.raspberrypi.org/raspios_lite_arm64/images/raspios_lite_arm64-2023-12-11/2023-12-11-raspios-bookworm-arm64-lite.img.xz
   printf "\r\033[1A\033[0K\033[0;33m -> 64-bit?:\033[0m Yes\n"
 else
   # 32-bit image - Compatble with all
-  imageSource=https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2023-10-10/2023-10-10-raspios-bookworm-armhf-lite.img.xz
+  imageSource=https://downloads.raspberrypi.org/raspios_lite_armhf/images/raspios_lite_armhf-2023-12-11/2023-12-11-raspios-bookworm-armhf-lite.img.xz
   printf "\r\033[1A\033[0K\033[0;33m -> 64-bit?:\033[0m No\n"
 fi
 
@@ -106,7 +106,7 @@ echo '#!/bin/bash' | sudo tee -a $serviceScript > /dev/null
 echo "sudo nmcli connection modify \"Wired connection 1\" connection.id \"Ethernet\"" | sudo tee -a $serviceScript > /dev/null
 echo "sudo nmcli device wifi connect \"$wifiSSID\" password \"$wifiPass\"" | sudo tee -a $serviceScript > /dev/null
 echo 'while ! ping -n -w 1 -c 1 google.com &> /dev/null; do echo "waiting on network"; sleep 1; done' | sudo tee -a $serviceScript > /dev/null
-echo 'bash <(curl -sSL http://10.0.0.50:18011/file/first-boot.sh)' | sudo tee -a $serviceScript > /dev/null
+echo 'bash <(curl -sSL http://10.0.0.50:18011/file/setup-pi.sh)' | sudo tee -a $serviceScript > /dev/null
 echo "sudo rm /etc/systemd/system/multi-user.target.wants/$serviceName.service" | sudo tee -a $serviceScript > /dev/null
 echo 'echo "Firstboot script complete. Restarting..."' | sudo tee -a $serviceScript > /dev/null
 echo 'sudo shutdown -r now' | sudo tee -a $serviceScript > /dev/null
