@@ -7,7 +7,7 @@
 #
 # Use at your own risk!
 #
-# 2024 Kyle Carbone
+# 2025 Kyle Carbone
 
 printf '\033[0;30;107m[ Quick NVME Setup ]\033[0m\n\n'
 
@@ -45,7 +45,7 @@ fi
 
 # Download pi imager
 printf '\n\033[0;36m- Install dependencies...\033[0m\n'
-sudo apt install rpi-imager -y
+sudo apt install rpi-imager libopengl0 libgl1 libegl1 -y
 
 # Erase and prepare drive
 printf '\n\033[0;36m- Preparing drive...\033[0m\n'
@@ -60,13 +60,17 @@ sed -e 's/\s*\([\+0-9a-zA-Z]*\).*/\1/' <<EOF | sudo fdisk $nvmeDev > /dev/null
 EOF
 
 # Download raspiOS
-printf '\n\033[0;36m- Download latest RaspiOS...\033[0m\n'
-rm -f raspbian.img
-rm -f raspbian.img.xz
-curl -L https://downloads.raspberrypi.org/raspios_lite_arm64_latest -o raspbian.img.xz
-echo ""
-echo "Extracting image..."
-unxz raspbian.img.xz
+if [ ! -f "raspbian.img" ]; 
+then
+  printf '\n\033[0;36m- Download latest RaspiOS...\033[0m\n'
+  rm -f raspbian.img
+  rm -f raspbian.img.xz
+  curl -L https://downloads.raspberrypi.org/raspios_lite_arm64_latest -o raspbian.img.xz
+  echo ""
+  echo "Extracting image..."
+  unxz raspbian.img.xz
+  rm -f raspbian.img.xz
+fi
 
 # Install OS on drive
 printf '\n\033[0;36m- Installing RaspiOS...\033[0m\n'
@@ -84,25 +88,60 @@ sudo mount "${nvmeDev}p1" $bootDir && echo "Boot partition mapped to $bootDir"
 sudo mount "${nvmeDev}p2" $rootDir && echo "Full OS partition mapped to $rootDir"
 
 # Copy settings to new OS
-printf '\n\033[0;36m- Setting defaults...\033[0m\n'
+printf '\n\033[0;36m- Creating setup script...\033[0m\n'
 
-# Enable SSH
-echo "Enabling SSH..."
-sudo touch /mnt/pi_boot/SSH
+piSetup="$rootDir/etc/pisetup.sh"
+sudo rm -f $piSetup
+sudo touch $piSetup
+printf '#!/bin/bash\n\n' | sudo tee -a $piSetup > /dev/null
+printf 'printf "\\n# run at $(date)" | sudo tee -a /etc/pisetup.sh > /dev/null\n' | sudo tee -a $piSetup > /dev/null
 
-# Enable default user
+# Set default user
 currentUser=$(sudo cat /etc/shadow | grep --color=never $(whoami))
 userName=$(echo $currentUser | cut -d ':' -f 1)
 userPass=$(echo $currentUser | cut -d ':' -f 2)
+echo "Set default user ($userName)"
+printf "/usr/lib/userconf-pi/userconf '$userName' '$userPass'\n" | sudo tee -a $piSetup > /dev/null
 
-echo "Setting default user ($userName)..."
-sudo rm -f /mnt/pi_boot/userconf.txt
-sudo touch /mnt/pi_boot/userconf.txt
-echo "$userName:$userPass" | sudo tee -a /mnt/pi_boot/userconf.txt > /dev/null
+# Set default wifi
+currentWifi="/etc/NetworkManager/system-connections/preconfigured.nmconnection"
+wifiSSID=$(sudo cat $currentWifi | awk -F '=' '$1 == "ssid" {print $2;exit}')
+wifiPSK=$(sudo cat $currentWifi | awk -F '=' '$1 == "psk" {print $2;exit}')
+echo "Set default wifi ($wifiSSID)"
+printf "/usr/lib/raspberrypi-sys-mods/imager_custom set_wlan '$wifiSSID' '$wifiPSK' 'US'\n" | sudo tee -a $piSetup > /dev/null
 
-# Copy network 
-echo "Copying network config..."
-sudo cp -R /etc/NetworkManager/system-connections/. /mnt/pi_root/etc/NetworkManager/system-connections/
+# Enable SSH
+echo "Enable SSH"
+printf "/usr/lib/raspberrypi-sys-mods/imager_custom enable_ssh\n" | sudo tee -a $piSetup > /dev/null
+
+# Finalize setup script
+printf 'rm -f /etc/systemd/system/multi-user.target.wants/pisetup.service\n' | sudo tee -a $piSetup > /dev/null
+printf 'printf " ## finished at $(date)" | sudo tee -a /etc/pisetup.sh > /dev/null\n' | sudo tee -a $piSetup > /dev/null
+printf 'shutdown -r now\n' | sudo tee -a $piSetup > /dev/null
+sudo chmod +x $piSetup
+
+# Install service for initial setup
+serviceFile="$rootDir/lib/systemd/system/pisetup.service"
+serviceTarget="$rootDir/etc/systemd/system/multi-user.target.wants/pisetup.service"
+
+sudo rm -f $serviceFile
+sudo touch $serviceFile
+echo '[Unit]' | sudo tee -a $serviceFile > /dev/null
+echo 'Description=First boot setup script' | sudo tee -a $serviceFile > /dev/null
+echo '' | sudo tee -a $serviceFile > /dev/null
+echo '[Service]' | sudo tee -a $serviceFile > /dev/null
+echo 'User=root' | sudo tee -a $serviceFile > /dev/null
+echo 'Type=simple' | sudo tee -a $serviceFile > /dev/null
+echo 'ExecStart=/etc/pisetup.sh' | sudo tee -a $serviceFile > /dev/null
+echo 'StandardOutput=syslog' | sudo tee -a $serviceFile > /dev/null
+echo 'StandardError=syslog' | sudo tee -a $serviceFile > /dev/null
+echo 'SyslogIdentifier=pisetup' | sudo tee -a $serviceFile > /dev/null
+echo '' | sudo tee -a $serviceFile > /dev/null
+echo '[Install]' | sudo tee -a $serviceFile > /dev/null
+echo 'WantedBy=multi-user.target' | sudo tee -a $serviceFile > /dev/null
+
+sudo rm -f $serviceTarget
+sudo ln -s $serviceFile $serviceTarget
 
 # Update boot order (B1 = SD, B2 = NVME)
 printf '\n\033[0;36m- Updating boot order...\033[0m\n'
@@ -116,10 +155,6 @@ sudo umount $bootDir
 sudo umount $rootDir
 sudo rm -rf $bootDir
 sudo rm -rf $rootDir
-
-echo "Deleting downloads..."
-rm -f raspbian.img
-rm -f raspbian.img.xz
 
 printf '\n\033[0;92mDone!\033[0m\n'
 printf 'Reboot to use NVME\n\n'
